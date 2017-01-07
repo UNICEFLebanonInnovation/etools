@@ -399,35 +399,79 @@ class PartnerOrganization(AdminURLMixin, models.Model):
         partner.hact_values['planned_visits'] = pv
         partner.save()
 
-    @classmethod
-    def programmatic_visits(cls, partner, trip=None):
+    # @classmethod
+    # def programmatic_visits(cls, partner, trip=None):
+    #     '''
+    #     :return: all done programmatic visits
+    #     '''
+    #     from trips.models import Trip
+    #     pv = partner.cp_cycle_trip_links.filter(
+    #         trip__travel_type=Trip.PROGRAMME_MONITORING,
+    #         trip__status__in=[Trip.COMPLETED]
+    #     ).count() or 0
+    #     if trip and trip.travel_type == Trip.PROGRAMME_MONITORING \
+    #             and trip.status in [Trip.COMPLETED]:
+    #         pv += 1
+    #     partner.hact_values['programmatic_visits'] = pv
+    #     partner.save()
+
+    @property
+    def programmatic_visits(self):
         '''
         :return: all done programmatic visits
         '''
         from trips.models import Trip
-        pv = partner.cp_cycle_trip_links.filter(
-            trip__travel_type=Trip.PROGRAMME_MONITORING,
-            trip__status__in=[Trip.COMPLETED]
-        ).count() or 0
-        if trip and trip.travel_type == Trip.PROGRAMME_MONITORING \
-                and trip.status in [Trip.COMPLETED]:
-            pv += 1
-        partner.hact_values['programmatic_visits'] = pv
-        partner.save()
+        list = self.cp_cycle_trip_links.filter(
+            Q(trip__travel_type=Trip.PROGRAMME_MONITORING),
+            Q(trip__status__in=[Trip.COMPLETED]),
+            ~Q(trip__section__name='Drivers'),
+        )
 
-    @classmethod
-    def spot_checks(cls, partner, trip=None):
+        ctr = 0
+        for item in list:
+            trip = item.trip
+            ctr_reports = len(trip.files.exclude(report__isnull=True).filter(type_id=19))
+            ctr_locations = trip.triplocation_set.all().count()
+            ctr_partners = trip.linkedpartner_set.all().count()
+            ctr_gov = trip.linkedgovernmentpartner_set.all().count()
+
+            if ctr_locations <= 1:
+                if ctr_partners + ctr_gov == 1 and ctr_reports > 1:
+                    print trip.id
+                    ctr += ctr_reports
+                else:
+                    ctr += 1
+            if ctr_locations > 1:
+                if ctr_partners + ctr_gov == 1:
+                    ctr += ctr_locations
+                if ctr_partners + ctr_gov > 1:
+                    ctr += 1
+
+        # print self.id, ctr, list.count()
+        return ctr
+
+    @property
+    def spot_checks(self):
         from trips.models import Trip
-        sc = partner.cp_cycle_trip_links.filter(
+        return self.cp_cycle_trip_links.filter(
             trip__travel_type=Trip.SPOT_CHECK,
             trip__status__in=[Trip.COMPLETED]
         ).count()
 
-        if trip and trip.travel_type == Trip.SPOT_CHECK \
-                and trip.status in [Trip.COMPLETED]:
-            sc += 1
-        partner.hact_values['spot_checks'] = sc
-        partner.save()
+
+    # @classmethod
+    # def spot_checks(cls, partner, trip=None):
+    #     from trips.models import Trip
+    #     sc = partner.cp_cycle_trip_links.filter(
+    #         trip__travel_type=Trip.SPOT_CHECK,
+    #         trip__status__in=[Trip.COMPLETED]
+    #     ).count()
+    #
+    #     if trip and trip.travel_type == Trip.SPOT_CHECK \
+    #             and trip.status in [Trip.COMPLETED]:
+    #         sc += 1
+    #     partner.hact_values['spot_checks'] = sc
+    #     partner.save()
 
     @classmethod
     def follow_up_flags(cls, partner, action_point=None):

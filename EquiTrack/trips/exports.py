@@ -90,15 +90,15 @@ class ActionPointResource(BaseExportResource):
     def fill_row(self, action, row):
 
         self.insert_column(row, 'Trip', action.trip.__unicode__())
-        self.insert_column(row, 'Traveller', action.trip.owner)
-        self.insert_column(row, 'Section', action.trip.section)
-        self.insert_column(row, 'Office', action.trip.office)
+        self.insert_column(row, 'Traveller', action.trip.owner.__unicode__() if action.trip.owner else '')
+        self.insert_column(row, 'Section', action.trip.section.__unicode__() if action.trip.section else '')
+        self.insert_column(row, 'Office', action.trip.office.__unicode__() if action.trip.office else '')
         self.insert_column(row, 'Description', action.description)
         self.insert_column(row, 'Due Date', action.due_date)
-        self.insert_column(row, 'Person Responsible', action.person_responsible)
+        self.insert_column(row, 'Person Responsible', action.person_responsible.__unicode__() if action.person_responsible else '')
         if UserProfile.objects.filter(user_id=action.person_responsible.id).exists():
-            self.insert_column(row, 'Responsible Section', action.person_responsible.profile.section)
-            self.insert_column(row, 'Responsible Office', action.person_responsible.profile.office)
+            self.insert_column(row, 'Responsible Section', action.person_responsible.profile.section.__unicode__() if action.person_responsible.profile.section else '')
+            self.insert_column(row, 'Responsible Office', action.person_responsible.profile.office.__unicode__() if action.person_responsible.profile.office else '')
         
         self.insert_column(row, 'Actions Taken', action.actions_taken)
         self.insert_column(
@@ -109,4 +109,4 @@ class ActionPointResource(BaseExportResource):
         )
         self.insert_column(row, 'Supervisors Comments', action.comments)
         self.insert_column(row, 'Status', action.status)
-        self.insert_column(row, 'Created', action.created_date)
+        self.insert_column(row, 'Created', action.created_date.strftime("%d-%m-%Y") if action.created_date else '')

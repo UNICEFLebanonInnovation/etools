@@ -21,7 +21,7 @@ from funds.models import Grant
 from reports.models import Result, Indicator
 from users.models import Section
 from .exports import (
-    # DonorsFormat,
+    DonorsFormat,
     PCAResource,
     PartnerResource,
 )
@@ -265,7 +265,7 @@ class PartnershipAdmin(ExportMixin, CountryUsersAdminMixin, HiddenPartnerMixin, 
     # Add custom exports
     formats = (
         base_formats.CSV,
-        # DonorsFormat,
+        DonorsFormat,
         # KMLFormat,
     )
     date_hierarchy = 'start_date'
