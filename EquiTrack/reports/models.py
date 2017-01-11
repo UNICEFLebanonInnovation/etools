@@ -12,14 +12,15 @@ class CountryProgramme(models.Model):
     from_date = models.DateField()
     to_date = models.DateField()
 
-
     def __unicode__(self):
         return ' '.join([self.name, self.wbs])
 
     @classmethod
     def current(cls):
         today = datetime.now()
-        cps = cls.objects.filter(wbs__contains='/A0/', from_date__lt=today, to_date__gt=today).order_by('-to_date')
+        # cps = cls.objects.filter(wbs__contains='/A0/', from_date__lt=today, to_date__gt=today).order_by('-to_date')
+        cps = cls.objects.filter(id=2).order_by('-to_date')
+        print cps.first()
         return cps.first()
 
 

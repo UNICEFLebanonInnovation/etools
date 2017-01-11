@@ -105,14 +105,14 @@
                                             {% endif %}
                                         </td>
                                         <td>{{ partner.rating }}</td>
-                                        <td>{{ partner.hact_values.planned_visits }}</td>
+                                        <td>{{ partner.planned_visits }}</td>
                                         <td>{{ reqs.programme_visits }}</td>
                                         <td>{{ partner.programmatic_visits }}</td>
-                                        <td>{{ reqs.spot_checks }}</td>
+                                        <td>{% if reqs.spot_checks %}{{ reqs.spot_checks }}{% else %}0{% endif %}</td>
                                         <td>{{ partner.spot_checks }}</td>
-                                        <td>{{ partner.hact_values.audits_mr }}</td>
-                                        <td>{{ partner.hact_values.audits_done }}</td>
-                                        <td>{{ partner.hact_values.follow_up_flags }}</td>
+                                        <td>{{ partner.audits_mr }}</td>
+                                        <td>{{ partner.audits_done }}</td>
+                                        <td>{{ partner.follow_up_flags }}</td>
                                     </tr>
                                     {% endwith %}
                                 {% endfor %}

@@ -245,6 +245,16 @@ class PartnerOrganization(AdminURLMixin, models.Model):
         partner.hact_values['audits_mr'] = audits
         partner.save()
 
+    @property
+    def audits_mr(self):
+        audits = 0
+        if self.total_ct_cp > 500000.00:
+            audits = 1
+            current_cycle = CountryProgramme.current()
+            last_audit = self.latest_assessment(u'Scheduled Audit report')
+            if last_audit and current_cycle.from_date < last_audit.completed_date < current_cycle.to_date:
+                audits = 0
+        return audits
 
     @classmethod
     def audit_done(cls, partner, assesment=None):
@@ -255,6 +265,11 @@ class PartnerOrganization(AdminURLMixin, models.Model):
         partner.hact_values['audits_done'] = audits
         partner.save()
 
+    @property
+    def audits_done(self):
+        audits = 0
+        audits = self.assessments.filter(type=u'Scheduled Audit report').count()
+        return audits
 
     @property
     def hact_min_requirements(self):
@@ -335,6 +350,7 @@ class PartnerOrganization(AdminURLMixin, models.Model):
     def cp_cycle_trip_links(self):
         from trips.models import Trip
         cry = datetime.datetime.now().year
+        cry = 2016
         if self.partner_type == u'Government':
             return self.linkedgovernmentpartner_set.filter(
                         trip__from_date__year=cry,
@@ -347,6 +363,7 @@ class PartnerOrganization(AdminURLMixin, models.Model):
     @property
     def trips(self):
         year = datetime.date.today().year
+        year = 2016
         from trips.models import LinkedPartner, Trip
         trip_ids = LinkedPartner.objects.filter(
             partner=self).values_list('trip__id', flat=True)
@@ -358,46 +375,66 @@ class PartnerOrganization(AdminURLMixin, models.Model):
             ~Q(section__name='Drivers'),
         )
 
-    @classmethod
-    def planned_visits(cls, partner, intervention=None):
+    # @classmethod
+    # def planned_visits(cls, partner, intervention=None):
+    #     year = datetime.date.today().year
+    #     from trips.models import Trip
+    #     # planned visits
+    #     pv = 0
+    #     if partner.partner_type == u'Government':
+    #
+    #         if intervention:
+    #             pv = GovernmentInterventionResult.objects.filter(
+    #                 intervention__partner=partner,
+    #                 year=year).exclude(id=intervention.id).aggregate(
+    #                 models.Sum('planned_visits')
+    #             )['planned_visits__sum'] or 0
+    #             pv += intervention.planned_visits
+    #         else:
+    #            pv = GovernmentInterventionResult.objects.filter(
+    #                 intervention__partner=partner,
+    #                 year=year).aggregate(
+    #                 models.Sum('planned_visits')
+    #             )['planned_visits__sum'] or 0
+    #     else:
+    #         qs = PCA.objects.filter(
+    #             partner=partner,
+    #             end_date__gte=datetime.date(year, 1, 1), status__in=[PCA.ACTIVE, PCA.IMPLEMENTED])
+    #         pv = 0
+    #         if intervention:
+    #             pv += intervention.planned_visits
+    #             if intervention.id:
+    #                 qs = qs.exclude(id=intervention.id)
+    #
+    #             pv += qs.aggregate(models.Sum('planned_visits'))['planned_visits__sum'] or 0
+    #         else:
+    #             pv = PCA.objects.filter(
+    #                  partner=partner,
+    #                  end_date__gte=datetime.date(year, 1, 1), status__in=[PCA.ACTIVE, PCA.IMPLEMENTED]).aggregate(
+    #                  models.Sum('planned_visits'))['planned_visits__sum'] or 0
+    #
+    #     partner.hact_values['planned_visits'] = pv
+    #     partner.save()
+
+    @property
+    def planned_visits(self):
         year = datetime.date.today().year
-        from trips.models import Trip
+        year = 2016
         # planned visits
         pv = 0
-        if partner.partner_type == u'Government':
-
-            if intervention:
-                pv = GovernmentInterventionResult.objects.filter(
-                    intervention__partner=partner,
-                    year=year).exclude(id=intervention.id).aggregate(
-                    models.Sum('planned_visits')
-                )['planned_visits__sum'] or 0
-                pv += intervention.planned_visits
-            else:
-               pv = GovernmentInterventionResult.objects.filter(
-                    intervention__partner=partner,
-                    year=year).aggregate(
-                    models.Sum('planned_visits')
-                )['planned_visits__sum'] or 0
+        if self.partner_type == u'Government':
+           pv = GovernmentInterventionResult.objects.filter(
+                intervention__partner=self,
+                year=year).aggregate(
+                models.Sum('planned_visits')
+            )['planned_visits__sum'] or 0
         else:
-            qs = PCA.objects.filter(
-                partner=partner,
-                end_date__gte=datetime.date(year, 1, 1), status__in=[PCA.ACTIVE, PCA.IMPLEMENTED])
-            pv = 0
-            if intervention:
-                pv += intervention.planned_visits
-                if intervention.id:
-                    qs = qs.exclude(id=intervention.id)
+            pv = PCA.objects.filter(
+                 partner=self,
+                 end_date__gte=datetime.date(year, 1, 1), status__in=[PCA.ACTIVE, PCA.IMPLEMENTED]).aggregate(
+                 models.Sum('planned_visits'))['planned_visits__sum'] or 0
 
-                pv += qs.aggregate(models.Sum('planned_visits'))['planned_visits__sum'] or 0
-            else:
-                pv = PCA.objects.filter(
-                     partner=partner,
-                     end_date__gte=datetime.date(year, 1, 1), status__in=[PCA.ACTIVE, PCA.IMPLEMENTED]).aggregate(
-                     models.Sum('planned_visits'))['planned_visits__sum'] or 0
-
-        partner.hact_values['planned_visits'] = pv
-        partner.save()
+        return pv
 
     # @classmethod
     # def programmatic_visits(cls, partner, trip=None):
@@ -437,7 +474,6 @@ class PartnerOrganization(AdminURLMixin, models.Model):
 
             if ctr_locations <= 1:
                 if ctr_partners + ctr_gov == 1 and ctr_reports > 1:
-                    print trip.id
                     ctr += ctr_reports
                 else:
                     ctr += 1
@@ -473,20 +509,31 @@ class PartnerOrganization(AdminURLMixin, models.Model):
     #     partner.hact_values['spot_checks'] = sc
     #     partner.save()
 
-    @classmethod
-    def follow_up_flags(cls, partner, action_point=None):
+    # @classmethod
+    # def follow_up_flags(cls, partner, action_point=None):
+    #     follow_ups = len([
+    #         action for trip in partner.trips
+    #         for action in trip.actionpoint_set.filter(
+    #             completed_date__isnull=True
+    #         )
+    #         if action.follow_up
+    #     ])
+    #     if action_point and action_point.completed_date is None and action_point.follow_up:
+    #         follow_ups += 1
+    #
+    #     partner.hact_values['follow_up_flags'] = follow_ups
+    #     partner.save()
+
+    @property
+    def follow_up_flags(self):
         follow_ups = len([
-            action for trip in partner.trips
+            action for trip in self.trips
             for action in trip.actionpoint_set.filter(
                 completed_date__isnull=True
             )
             if action.follow_up
         ])
-        if action_point and action_point.completed_date is None and action_point.follow_up:
-            follow_ups += 1
-
-        partner.hact_values['follow_up_flags'] = follow_ups
-        partner.save()
+        return follow_ups
 
     @classmethod
     def create_user(cls, sender, instance, created, **kwargs):
